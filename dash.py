@@ -11,6 +11,7 @@ from finrl.main import check_and_make_directories
 
 from os import listdir
 
+
 def check_and_make_list():
     if 'tickers.txt' not in listdir('./'):
         with open('./tickers.txt','w') as file:
@@ -19,16 +20,16 @@ def check_and_make_list():
                 file.write(tic + '\n')
     else:
         with open('./tickers.txt', 'w') as f:
-            orig_tics = getList()
+            orig_tics = get_list()
             new_tics = [x.split('_')[0] for x in listdir('./raw_data/')]
             tics = list(set(orig_tics) | set(new_tics))
             for tic in tics:
-                file.write(tic)
+                f.write(tic)
             
 
-def downloadTickers(start_date='2000-01-01', end_date='2023-06-30'):
+def download_tickers(start_date='2000-01-01', end_date='2023-06-30'):
     # check the list file
-    ticker_list = getList()
+    ticker_list = get_list()
     ticker_list = set(ticker_list).difference(set([x.split('_')[0] for x in listdir('./raw_data/')]))
     ticker_list = list(ticker_list)
     if not ticker_list:
@@ -37,11 +38,13 @@ def downloadTickers(start_date='2000-01-01', end_date='2023-06-30'):
     for ticker in ticker_list:
         df_raw[df_raw.tic == ticker].to_csv('raw_data/' + ticker + '_' + str(datetime.datetime.now()) + '.csv') # should be changed t peek into the data
 
-def addTicker(new_tic):
+
+def add_ticker(new_tic):
     with open('./tickers.txt', 'a') as f:
         f.write(new_tic + '\n')
 
-def getList():
+
+def get_list():
     if 'tickers.txt' not in listdir('./'):
         return []
     with open('./tickers.txt', 'r') as f:
@@ -49,32 +52,34 @@ def getList():
 
         return out_list
 
+
 sg.theme('Dark Blue 3')
 
 check_and_make_directories([TRAINED_MODEL_DIR, './raw_data', './clean_data'])
 
-tickers = getList()
+tickers = get_list()
 
-layout = [  [sg.Text('Number of Tickers:'), sg.Text(text=len(tickers) ,size=(4,1), key='-TICNUM-'), sg.Button('List'), sg.Button('Update')],
-            [sg.Text('Add or Remove Tickers:'), sg.InputText(), sg.Button('Add'), sg.Button('Remove')],
-            [sg.Button('Ok'), sg.Button('Cancel')]  ]
+layout = [[sg.Text('Number of Tickers:'), sg.Text(text=len(tickers) ,size=(4,1), key='-TICNUM-'), sg.Button('List'), sg.Button('Update')],
+          [sg.Text('Add or Remove Tickers:'), sg.InputText(), sg.Button('Add'), sg.Button('Remove')],
+          [sg.Button('Load Model'), sg.InputText(k='-MODEL-'), sg.Text(key='-LOADED MODEL-')],
+          [sg.Button('Ok'), sg.Button('Cancel')]]
 
 window = sg.Window('Window Title', layout)
 
-ticker_list = config_tickers.DOW_30_TICKER
-
 while True:
-    tickers = getList()
+    tickers = get_list()
     event, values = window.read()
     window['-TICNUM-'].update(len(tickers))
-    if event == sg.WIN_CLOSED or event =='Cancel':
+    if event == sg.WIN_CLOSED or event == 'Cancel':
         break
     print('You entered ', values[0])
     if event == 'List':
         sg.popup_scrolled("\n".join(tickers), title='Tickers', non_blocking=True)
     if event == 'Update':
-        downloadTickers()
+        download_tickers()
     if event == 'Add':
-        addTicker(values[0])
+        add_ticker(values[0])
+    if event == 'Load Model':
+        continue
 
 window.close()
