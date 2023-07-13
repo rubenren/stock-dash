@@ -13,33 +13,50 @@ from os import listdir
 
 
 def check_and_make_list():
+    '''Creates tickers.txt if it does not exist, otherwise it updates it with respect to stored data'''
     if 'tickers.txt' not in listdir('./'):
         with open('./tickers.txt','w') as file:
             tics = [x.split('_')[0] for x in listdir('./raw_data/')]
             for tic in tics:
                 file.write(tic + '\n')
     else:
+        orig_tics = get_list()
         with open('./tickers.txt', 'w') as f:
-            orig_tics = get_list()
             new_tics = [x.split('_')[0] for x in listdir('./raw_data/')]
             tics = list(set(orig_tics) | set(new_tics))
-            for tic in tics:
-                f.write(tic)
+            f.write('\n'.join(tics))
             
+def get_date():
+    '''Returns the current date'''
+    return datetime.datetime.now().date()
 
-def download_tickers(start_date='2000-01-01', end_date='2023-06-30'):
+def download_tickers(start_date='2000-01-01', end_date=None):
+    
+    if not end_date:
+        end_date = str(get_date())
+
     # check the list file
     ticker_list = get_list()
+    
+    # Gather the tics we have yet to download
     ticker_list = set(ticker_list).difference(set([x.split('_')[0] for x in listdir('./raw_data/')]))
     ticker_list = list(ticker_list)
+
+    # If we have nothing to download, skip
+    # TODO: add date checking to keep the database upto date
     if not ticker_list:
         return
+    
+    # Download the data for the specified date
     df_raw = YahooDownloader(start_date=start_date, end_date=end_date, ticker_list=ticker_list).fetch_data()
+    
+    # Split and store the data with labels
     for ticker in ticker_list:
-        df_raw[df_raw.tic == ticker].to_csv('raw_data/' + ticker + '_' + str(datetime.date.now()) + '.csv') # should be changed t peek into the data
+        df_raw[df_raw.tic == ticker].to_csv('raw_data/' + ticker + '_' + end_date + '.csv') # TODO: should be labelled using their date range instead of update day
 
 
 def add_ticker(new_tic):
+    '''Add a tic marker to the list'''
     tickers = get_list()
     tickers.append(new_tic)
     with open('./tickers.txt', 'w') as f:
@@ -47,6 +64,7 @@ def add_ticker(new_tic):
 
 
 def remove_ticker(tic = ""):
+    '''Remove a tic marker from the list'''
     tickers = get_list()
     tickers.remove(tic)
     with open('./tickers.txt', 'w') as f:
@@ -54,6 +72,7 @@ def remove_ticker(tic = ""):
 
 
 def get_list():
+    '''Read from our list if it exists, otherwise return empty list'''
     if 'tickers.txt' not in listdir('./'):
         return []
     with open('./tickers.txt', 'r') as f:
@@ -63,6 +82,7 @@ def get_list():
 
         
 def data_page():
+    '''Layout for the data page'''
     col1 = [[sg.T('Start Date:'), sg.InputText(k='-START DATE-')],
             [sg.T('Train End Date:'), sg.InputText(k='-TRAIN END DATE-')],
             [sg.T('Test End Date:'), sg.InputText(k='-TEST END DATE-')]]
@@ -80,6 +100,7 @@ def data_page():
 
 
 def main_page():
+    '''Layout for the main launcher page'''
     layout = [[sg.Button('Data'), sg.Button('Train')],
               [sg.Button('Eval'), sg.Button('Use')]]
 
